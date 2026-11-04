@@ -8,17 +8,15 @@ use hiperesp\server\enums\Output;
 
 class ChangePasswordController extends Controller {
 
+    use NotImplemented;
+
     #[Request(
         endpoint: '/api/manage-account/change-password',
         inputType: Input::JSON,
         outputType: Output::JSON
     )]
     public function changePassword(array $input): array {
-        $input['currentPassword'];
-        $input['newPassword'];
-        // will change the password
-        // and email the user about the change
-        return [];
+        return $this->notImplemented();
     }
 
 }

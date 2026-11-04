@@ -3,6 +3,10 @@
 
 You can configure the server connection by editing the `/src/server-emulator/.config.php` file or by setting your environment variables like this file.
 
+- `CORS_ORIGINS`: Optional comma-separated list of full origins allowed for credentialed CORS (example: `https://play.example.com`). Same-host origins are always allowed. Arbitrary reflected origins are not.
+
+Passwords use Argon2id. Existing bcrypt hashes still verify; they are upgraded to Argon2id on the next successful login. After pulling this change, run a normal `setup.lock` upgrade so the `user.password` column can widen to 255 characters.
+
 ## Game Settings
 
 Access your database and open your `settings` table. This is what each column means:

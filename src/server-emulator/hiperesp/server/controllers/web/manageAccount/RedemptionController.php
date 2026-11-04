@@ -8,13 +8,15 @@ use hiperesp\server\enums\Output;
 
 class RedemptionController extends Controller {
 
+    use NotImplemented;
+
     #[Request(
         endpoint: '/api/manage-account/redemptions',
         inputType: Input::JSON,
         outputType: Output::JSON
     )]
     public function getRedemptions(array $input): array {
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -23,8 +25,7 @@ class RedemptionController extends Controller {
         outputType: Output::JSON
     )]
     public function redeemCode1(array $input): array {
-        // return what this code can redeem
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -33,8 +34,7 @@ class RedemptionController extends Controller {
         outputType: Output::JSON
     )]
     public function redeemCode2(array $input): array {
-        // to redeem dragon coins, dragon amulet, etc to char or account
-        return [];
+        return $this->notImplemented();
     }
 
 }

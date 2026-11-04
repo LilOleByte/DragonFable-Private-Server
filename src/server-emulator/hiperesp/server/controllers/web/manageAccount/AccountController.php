@@ -8,13 +8,15 @@ use hiperesp\server\enums\Output;
 
 class AccountController extends Controller {
 
+    use NotImplemented;
+
     #[Request(
         endpoint: '/api/manage-account/login',
         inputType: Input::JSON,
         outputType: Output::JSON
     )]
     public function login(array $input): array {
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -23,12 +25,7 @@ class AccountController extends Controller {
         outputType: Output::JSON
     )]
     public function getAccountInfo(array $input): array {
-        // username
-        // email
-        // email confirmation status
-        // date created
-        // last time played
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -37,7 +34,7 @@ class AccountController extends Controller {
         outputType: Output::JSON
     )]
     public function getCharacters(array $input): array {
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -46,9 +43,7 @@ class AccountController extends Controller {
         outputType: Output::JSON
     )]
     public function getPreferences(array $input): array {
-        // newsletterSubscription
-
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -57,7 +52,7 @@ class AccountController extends Controller {
         outputType: Output::JSON
     )]
     public function updatePreferences(array $input): array {
-        return [];
+        return $this->notImplemented();
     }
 
 }

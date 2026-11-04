@@ -12,8 +12,8 @@ function remote(string $pathInfo): string|false {
     \curl_setopt($ch, CURLOPT_URL, $remoteFile);
     \curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     \curl_setopt($ch, CURLOPT_HEADER, 0);
-    \curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    \curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    \curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    \curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     $response = \curl_exec($ch);
     $httpcode = \curl_getinfo($ch, CURLINFO_HTTP_CODE);
     \curl_close($ch);

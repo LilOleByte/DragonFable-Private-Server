@@ -2,6 +2,7 @@
 namespace hiperesp\server\models;
 
 use hiperesp\server\exceptions\DFException;
+use hiperesp\server\util\Password;
 use hiperesp\server\vo\CharacterVO;
 use hiperesp\server\vo\UserVO;
 
@@ -34,12 +35,15 @@ class UserModel extends Model {
 
         $user = $this->storage->select(self::COLLECTION, [ $field => $username ]);
         if(isset($user[0]) && $user = $user[0]) {
-            if(\password_verify($password, $user['password'])) {
+            if(Password::verify($password, (string)$user['password'])) {
                 if($user['banned']) {
                     throw new DFException(DFException::USER_BANNED);
                 }
                 $user['sessionToken'] = $this->_generateUniqueSessionToken();
                 $user['lastLogin'] = \date('c');
+                if(Password::needsRehash((string)$user['password'])) {
+                    $user['password'] = Password::hash($password);
+                }
                 $this->storage->update(self::COLLECTION, $user);
                 return new UserVO($user);
             }
@@ -71,7 +75,7 @@ class UserModel extends Model {
             throw new DFException(DFException::EMAIL_ALREADY_EXISTS);
         }
 
-        $data['password'] = \password_hash($password, \PASSWORD_DEFAULT);
+        $data['password'] = Password::hash($password);
         $data['sessionToken'] = $this->_generateUniqueSessionToken();
         $data['birthdate'] = \date('Y-m-d', \strtotime($birthdate));
 
@@ -140,7 +144,7 @@ class UserModel extends Model {
     public function changePassword(UserVO $user, string $password): void {
         $this->storage->update(self::COLLECTION, [
             'id' => $user->id,
-            'password' => \password_hash($password, \PASSWORD_DEFAULT),
+            'password' => Password::hash($password),
             'recoveryCode' => null,
             'recoveryExpires' => null,
             'sessionToken' => $this->_generateUniqueSessionToken(),

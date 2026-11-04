@@ -19,3 +19,6 @@ $config["DB_OPTIONS"] = \json_encode([
 
 $config["DF_SETTINGS_ID"] = 1;               # Optional, default 1
 $config["DF_NINJA2_KEY"]  = "ZorbakOwnsYou"; # Optional, default "ZorbakOwnsYou"
+# Optional comma-separated full origins for cross-origin clients (e.g. separate CDN domain).
+# Same-host origins are always allowed. Example: "https://play.example.com,https://cdn.example.com"
+$config["CORS_ORIGINS"] = "";

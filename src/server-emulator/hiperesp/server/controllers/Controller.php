@@ -91,27 +91,48 @@ abstract class Controller {
     }
 
     /**
-     * Ref: https://stackoverflow.com/questions/8719276/cross-origin-request-headerscors-with-php-headers
+     * Allow same-host origins by default.
+     * Optional allow-list via $config["CORS_ORIGINS"] (comma-separated full origins).
      */
     private static function cors(): void {
-        // Allow from any origin
-        if (isset($_SERVER['HTTP_ORIGIN'])) {
-            // Decide if the origin in $_SERVER['HTTP_ORIGIN'] is one
-            // you want to allow, and if so:
+        if (isset($_SERVER['HTTP_ORIGIN']) && self::isCorsOriginAllowed((string)$_SERVER['HTTP_ORIGIN'])) {
             \header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
             \header('Access-Control-Allow-Credentials: true');
-            \header('Access-Control-Max-Age: 86400');    // cache for 1 day
+            \header('Access-Control-Max-Age: 86400');
+            \header('Vary: Origin');
         }
 
-        // Access-Control headers are received during OPTIONS requests
         if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
-                // may also be using PUT, PATCH, HEAD etc
+            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
                 \header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
+            }
+            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
                 \header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+            }
             exit(0);
         }
+    }
+
+    private static function isCorsOriginAllowed(string $origin): bool {
+        global $config;
+
+        $allowed = [];
+        if(\is_array($config ?? null) && !empty($config['CORS_ORIGINS'])) {
+            $allowed = \array_values(\array_filter(\array_map(
+                static fn(string $value): string => \trim($value),
+                \explode(',', (string)$config['CORS_ORIGINS'])
+            )));
+        }
+        if($allowed && \in_array($origin, $allowed, true)) {
+            return true;
+        }
+
+        $originHost = \parse_url($origin, \PHP_URL_HOST);
+        $requestHost = \strtolower((string)(\parse_url('http://'.($_SERVER['HTTP_HOST'] ?? ''), \PHP_URL_HOST) ?: ''));
+        if(!\is_string($originHost) || $originHost === '' || $requestHost === '') {
+            return false;
+        }
+        return \strtolower($originHost) === $requestHost;
     }
 
 }

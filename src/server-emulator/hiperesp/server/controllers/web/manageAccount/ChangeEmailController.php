@@ -8,16 +8,15 @@ use hiperesp\server\enums\Output;
 
 class ChangeEmailController extends Controller {
 
+    use NotImplemented;
+
     #[Request(
         endpoint: '/api/manage-account/change-email/1',
         inputType: Input::JSON,
         outputType: Output::JSON
     )]
     public function changeEmail(array $input): array {
-        $input['newEmail'];
-        // will send an email with a code to the new email
-        // will send an email with a code to the old email
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -26,13 +25,7 @@ class ChangeEmailController extends Controller {
         outputType: Output::JSON
     )]
     public function changeEmail2(array $input): array {
-        $input['newEmail'];
-        $input['newEmailCode'];
-        $input['oldEmailCode'];
-        // validate the codes
-        // change the email
-        // email the user about the change
-        return [];
+        return $this->notImplemented();
     }
 
 }

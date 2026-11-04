@@ -8,15 +8,15 @@ use hiperesp\server\enums\Output;
 
 class ConfirmEmailController extends Controller {
 
+    use NotImplemented;
+
     #[Request(
         endpoint: '/api/manage-account/confirm-email/1',
         inputType: Input::JSON,
         outputType: Output::JSON
     )]
     public function confirmEmail(array $input): array {
-        $input['emailCode'];
-        // will send an email with a code
-        return [];
+        return $this->notImplemented();
     }
 
     #[Request(
@@ -25,10 +25,7 @@ class ConfirmEmailController extends Controller {
         outputType: Output::JSON
     )]
     public function confirmEmail2(array $input): array {
-        $input['emailCode'];
-        // validate the code
-        // confirm the email
-        return [];
+        return $this->notImplemented();
     }
 
 }

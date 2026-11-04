@@ -114,7 +114,7 @@ final class Definition {
 
                     "sendEmails"            => 0,
                     "emailApiUrl"           => "https://send.api.mailtrap.io/api/send",
-                    "emailApiToken"         => "280061d0e211c57de35f897d8bf0ad6c",
+                    "emailApiToken"         => "",
                     "emailAddress"          => "yourserver@yourdomain.com",
                 ]
             ],
@@ -292,7 +292,8 @@ final class Definition {
                 "updatedAt"     => [ 'DATETIME', 'UPDATED_DATETIME' ],
 
                 "username"      => [ 'STRING' => 25,  'UNIQUE' ],
-                "password"      => [ 'STRING' => 64,  ],
+                // Argon2id hashes are ~97+ chars; keep headroom for algorithm upgrades.
+                "password"      => [ 'STRING' => 255, ],
                 "email"         => [ 'STRING' => 255, 'UNIQUE' ],
                 "birthdate"     => [ 'DATE' ],
 
