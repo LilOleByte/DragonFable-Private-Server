@@ -29,64 +29,67 @@ class ItemShopService extends Service {
     }
 
     public function buy(CharacterVO $char, int $shopId, int $itemId): CharacterItemVO {
-        try {
-            $shop = $this->itemShopModel->getById($shopId);
-            $item = $this->itemModel->getByShopAndId($shop, $itemId);
-        } catch(\Exception $e) {
-            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyItem', 'Invalid shopId or itemId', $char, $char, [
-                'shopId' => $shopId,
-                'itemId' => $itemId
-            ])->asException(DFException::INVALID_REFERENCE);
-        }
+        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($shopId, $itemId): CharacterItemVO {
+            try {
+                $shop = $this->itemShopModel->getById($shopId);
+                $item = $this->itemModel->getByShopAndId($shop, $itemId);
+            } catch(\Exception $e) {
+                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyItem', 'Invalid shopId or itemId', $char, $char, [
+                    'shopId' => $shopId,
+                    'itemId' => $itemId
+                ])->asException(DFException::INVALID_REFERENCE);
+            }
 
-        if(!$char->canBuy($item)) {
-            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyItem', 'Cannot buy item', $char, $item, [])->asException(DFException::CANNOT_BUY_ITEM);
-        }
+            if(!$char->canBuy($item)) {
+                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyItem', 'Cannot buy item', $char, $item, [])->asException(DFException::CANNOT_BUY_ITEM);
+            }
 
-        $charItem = $this->characterItemModel->addItemToChar($char, $item);
-        $this->characterModel->charge($char, $item);
+            $charItem = $this->characterItemModel->addItemToChar($char, $item);
+            $this->characterModel->charge($char, $item);
 
-        $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyItem', 'Item bought', $char, $charItem, []);
-        return $charItem;
+            $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyItem', 'Item bought', $char, $charItem, []);
+            return $charItem;
+        });
     }
 
     public function sell(CharacterVO $char, int $charItemId, int $quantity, int $returnPercent): void {
+        $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($charItemId, $quantity, &$returnPercent): void {
+            $charItem = $this->characterItemModel->getByCharAndId($char, $charItemId);
 
-        $charItem = $this->characterItemModel->getByCharAndId($char, $charItemId);
-
-        if($this->settings->revalidateClientValues) {
-            $item = $charItem->getItem();
-            if($item->getPriceCoins()) {
-                if($charItem->hoursOwned >= 24) {
-                    $newReturnPercent = 25;
+            if($this->settings->revalidateClientValues) {
+                $item = $charItem->getItem();
+                if($item->getPriceCoins()) {
+                    if($charItem->hoursOwned >= 24) {
+                        $newReturnPercent = 25;
+                    } else {
+                        $newReturnPercent = 90;
+                    }
                 } else {
-                    $newReturnPercent = 90;
+                    $newReturnPercent = 10;
                 }
-            } else {
-                $newReturnPercent = 10;
-            }
-            if($returnPercent != $newReturnPercent) {
-                if($this->settings->banInvalidClientValues) {
-                    $actionLog = $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'sellItem', "Invalid returnPercent for charItem. Should be {$newReturnPercent}.", $char, $charItem, [
-                        'quantity' => $quantity,
-                        'returnPercent' => $returnPercent
-                    ]);
-                    $this->userService->ban($char, 'Invalid returnPercent for sellItem.', $actionLog);
+                if($returnPercent != $newReturnPercent) {
+                    if($this->settings->banInvalidClientValues) {
+                        $actionLog = $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'sellItem', "Invalid returnPercent for charItem. Should be {$newReturnPercent}.", $char, $charItem, [
+                            'quantity' => $quantity,
+                            'returnPercent' => $returnPercent
+                        ]);
+                        $this->userService->ban($char, 'Invalid returnPercent for sellItem.', $actionLog);
+                    }
                 }
+                $returnPercent = $newReturnPercent;
             }
-            $returnPercent = $newReturnPercent;
-        }
 
-        $this->characterModel->refundItem($char, $charItem,
-            quantity: $quantity,
-            returnPercent: $returnPercent
-        );
-        $this->characterItemModel->destroy($charItem);
+            $this->characterModel->refundItem($char, $charItem,
+                quantity: $quantity,
+                returnPercent: $returnPercent
+            );
+            $this->characterItemModel->destroy($charItem);
 
-        $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'sellItem', 'Item sold', $char, $charItem, [
-            'quantity' => $quantity,
-            'returnPercent' => $returnPercent
-        ]);
+            $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'sellItem', 'Item sold', $char, $charItem, [
+                'quantity' => $quantity,
+                'returnPercent' => $returnPercent
+            ]);
+        });
     }
 
 }

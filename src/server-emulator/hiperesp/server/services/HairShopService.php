@@ -23,23 +23,25 @@ class HairShopService extends Service {
     }
 
     public function buy(CharacterVO $char, int $hairId, int $hairColor, int $skinColor): HairVO {
-        try {
-            $hair = $this->hairModel->getById($hairId);
-        } catch(\Exception $e) {
-            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyHair', 'Invalid hairId', $char, $char, [
-                'hairId' => $hairId
-            ])->asException(DFException::INVALID_REFERENCE);
-        }
+        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($hairId, $hairColor, $skinColor): HairVO {
+            try {
+                $hair = $this->hairModel->getById($hairId);
+            } catch(\Exception $e) {
+                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyHair', 'Invalid hairId', $char, $char, [
+                    'hairId' => $hairId
+                ])->asException(DFException::INVALID_REFERENCE);
+            }
 
-        if(!$char->canBuy($hair)) {
-            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyHair', 'Cannot buy hair', $char, $hair, [])->asException(DFException::CANNOT_BUY_HAIR);
-        }
+            if(!$char->canBuy($hair)) {
+                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyHair', 'Cannot buy hair', $char, $hair, [])->asException(DFException::CANNOT_BUY_HAIR);
+            }
 
-        $this->characterModel->applyHair($char, $hair, $hairColor, $skinColor);
-        $this->characterModel->charge($char, $hair);
+            $this->characterModel->applyHair($char, $hair, $hairColor, $skinColor);
+            $this->characterModel->charge($char, $hair);
 
-        $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyHair', 'Hair bought', $char, $hair, []);
-        return $hair;
+            $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyHair', 'Hair bought', $char, $hair, []);
+            return $hair;
+        });
     }
 
 }

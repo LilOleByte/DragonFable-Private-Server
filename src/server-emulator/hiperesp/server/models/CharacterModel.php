@@ -22,6 +22,21 @@ class CharacterModel extends Model {
         return $this->getById($char->id);
     }
 
+    /**
+     * Serialize currency/item mutations for one character.
+     * Refreshes the character inside the transaction so balances are current.
+     *
+     * @template T
+     * @param callable(CharacterVO): T $callback
+     * @return T
+     */
+    public function withLockedCharacter(CharacterVO $char, callable $callback): mixed {
+        return $this->storage->transaction(function() use ($char, $callback): mixed {
+            $this->storage->lockDocument(self::COLLECTION, $char->id);
+            return $callback($this->getById($char->id));
+        });
+    }
+
     public function getById(int $charId): CharacterVO {
         $char = $this->storage->select(self::COLLECTION, ['id' => $charId]);
         if(isset($char[0]) && $char = $char[0]) {

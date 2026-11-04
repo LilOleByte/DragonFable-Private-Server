@@ -21,6 +21,12 @@ abstract class Storage {
     protected abstract function dropCollection(string $prefix, string $collection): bool;
     protected abstract function renameCollection(string $oldPrefix, string $oldCollectionName, string $newPrefix, string $newCollectionName): bool;
 
+    /** Run $callback inside a DB transaction. Nested calls reuse the active transaction. */
+    abstract public function transaction(callable $callback): mixed;
+
+    /** Lock a row for the current transaction (no-op if the driver serializes writes another way). */
+    abstract public function lockDocument(string $collection, int $id): void;
+
     protected string $dateFormat = "Y-m-d";
     protected string $dateTimeFormat = "Y-m-d H:i:s";
 

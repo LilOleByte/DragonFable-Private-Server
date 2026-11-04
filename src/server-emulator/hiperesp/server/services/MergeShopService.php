@@ -4,6 +4,7 @@ namespace hiperesp\server\services;
 use hiperesp\server\attributes\Inject;
 use hiperesp\server\exceptions\DFException;
 use hiperesp\server\models\CharacterItemModel;
+use hiperesp\server\models\CharacterModel;
 use hiperesp\server\models\MergeShopModel;
 use hiperesp\server\models\LogsModel;
 use hiperesp\server\models\MergeModel;
@@ -15,6 +16,7 @@ use hiperesp\server\vo\MergeVO;
 class MergeShopService extends Service {
 
     #[Inject] private CharacterItemModel $characterItemModel;
+    #[Inject] private CharacterModel $characterModel;
     #[Inject] private MergeModel $mergeModel;
     #[Inject] private MergeShopModel $mergeShopModel;
     #[Inject] private LogsModel $logsModel;
@@ -29,27 +31,29 @@ class MergeShopService extends Service {
 
     /** @return array<CharacterItemVO> */
     public function merge(CharacterVO $char, MergeVO $merge): array {
-        if(!$char->canMerge($merge)) {
-            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'mergeItem', 'Cannot merge item', $char, $merge, [])->asException(DFException::CANNOT_MERGE_ITEM);
-        }
+        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($merge): array {
+            if(!$char->canMerge($merge)) {
+                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'mergeItem', 'Cannot merge item', $char, $merge, [])->asException(DFException::CANNOT_MERGE_ITEM);
+            }
 
-        $removedItem1 = null;
-        if($item1 = $merge->getItem1()) {
-            $removedItem1 = $this->characterItemModel->removeItemFromChar($char, $item1, $merge->amount1);
-        }
+            $removedItem1 = null;
+            if($item1 = $merge->getItem1()) {
+                $removedItem1 = $this->characterItemModel->removeItemFromChar($char, $item1, $merge->amount1);
+            }
 
-        $removedItem2 = null;
-        if($item2 = $merge->getItem2()) {
-            $removedItem2 = $this->characterItemModel->removeItemFromChar($char, $item2, $merge->amount2);
-        }
+            $removedItem2 = null;
+            if($item2 = $merge->getItem2()) {
+                $removedItem2 = $this->characterItemModel->removeItemFromChar($char, $item2, $merge->amount2);
+            }
 
-        $newCharItem = $this->characterItemModel->addItemToChar($char, $merge->getItem());
+            $newCharItem = $this->characterItemModel->addItemToChar($char, $merge->getItem());
 
-        return [
-            'newCharItem'  => $newCharItem,
-            'removedItem1' => $removedItem1,
-            'removedItem2' => $removedItem2
-        ];
+            return [
+                'newCharItem'  => $newCharItem,
+                'removedItem1' => $removedItem1,
+                'removedItem2' => $removedItem2
+            ];
+        });
     }
 
 }

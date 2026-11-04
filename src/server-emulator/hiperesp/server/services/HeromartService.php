@@ -25,115 +25,115 @@ class HeromartService extends Service {
     const AFFECT_CHANGE_PRONOUN_COST =    0; // must match with the value in the client
 
     public function buyAffect(CharacterVO $char, int $affectId, int $action, string $command): CharacterVO {
+        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($affectId, $action, $command): CharacterVO {
+            if($affectId == self::AFFECT_CHANGE_GENDER) {
+                if($char->coins < self::AFFECT_CHANGE_GENDER_COST) {
+                    throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change gender', $char, $char, [
+                        'affectId' => $affectId,
+                        'action' => $action,
+                        'command' => $command,
+                        'coins' => self::AFFECT_CHANGE_GENDER_COST
+                    ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                }
 
-        if($affectId == self::AFFECT_CHANGE_GENDER) {
-            if($char->coins < self::AFFECT_CHANGE_GENDER_COST) {
-                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change gender', $char, $char, [
+                $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_GENDER_COST);
+                $this->characterModel->changeGender($char, $command);
+
+                $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Gender changed', $char, $char, [
                     'affectId' => $affectId,
                     'action' => $action,
                     'command' => $command,
                     'coins' => self::AFFECT_CHANGE_GENDER_COST
-                ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                ]);
+
+                return $this->characterModel->refresh($char);
             }
 
-            $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_GENDER_COST);
-            $this->characterModel->changeGender($char, $command);
+            if($affectId == self::AFFECT_CHANGE_NAME) {
+                if($char->coins < self::AFFECT_CHANGE_NAME_COST) {
+                    throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change name', $char, $char, [
+                        'affectId' => $affectId,
+                        'action' => $action,
+                        'command' => $command,
+                        'coins' => self::AFFECT_CHANGE_NAME_COST
+                    ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                }
 
-            $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Gender changed', $char, $char, [
-                'affectId' => $affectId,
-                'action' => $action,
-                'command' => $command,
-                'coins' => self::AFFECT_CHANGE_GENDER_COST
-            ]);
+                $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_NAME_COST);
+                $this->characterModel->changeName($char, $command);
 
-            return $this->characterModel->refresh($char);
-        }
-
-        if($affectId == self::AFFECT_CHANGE_NAME) {
-            if($char->coins < self::AFFECT_CHANGE_NAME_COST) {
-                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change name', $char, $char, [
+                $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Name changed', $char, $char, [
                     'affectId' => $affectId,
                     'action' => $action,
                     'command' => $command,
                     'coins' => self::AFFECT_CHANGE_NAME_COST
-                ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                ]);
+
+                return $this->characterModel->refresh($char);
             }
 
-            $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_NAME_COST);
-            $this->characterModel->changeName($char, $command);
+            if($affectId == self::AFFECT_CHANGE_CLASS) {
+                if($char->coins < self::AFFECT_CHANGE_CLASS_COST) {
+                    throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change class', $char, $char, [
+                        'affectId' => $affectId,
+                        'action' => $action,
+                        'command' => $command,
+                        'coins' => self::AFFECT_CHANGE_CLASS_COST
+                    ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                }
 
-            $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Name changed', $char, $char, [
-                'affectId' => $affectId,
-                'action' => $action,
-                'command' => $command,
-                'coins' => self::AFFECT_CHANGE_NAME_COST
-            ]);
+                try {
+                    $class = $this->classModel->getById($action);
+                } catch(DFException $e) {
+                    throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Invalid class', $char, $char, [
+                        'affectId' => $affectId,
+                        'action' => $action,
+                        'command' => $command
+                    ])->asException($e->getDFCode());
+                }
 
-            return $this->characterModel->refresh($char);
-        }
+                $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_CLASS_COST);
+                $this->characterModel->changeClass($char, $class);
 
-        if($affectId == self::AFFECT_CHANGE_CLASS) {
-            if($char->coins < self::AFFECT_CHANGE_CLASS_COST) {
-                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change class', $char, $char, [
+                $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Class changed', $char, $char, [
                     'affectId' => $affectId,
                     'action' => $action,
                     'command' => $command,
                     'coins' => self::AFFECT_CHANGE_CLASS_COST
-                ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                ]);
+
+                return $this->characterModel->refresh($char);
             }
 
-            try {
-                $class = $this->classModel->getById($action);
-            } catch(DFException $e) {
-                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Invalid class', $char, $char, [
-                    'affectId' => $affectId,
-                    'action' => $action,
-                    'command' => $command
-                ])->asException($e->getDFCode());
-            }
+            if($affectId == self::AFFECT_CHANGE_PRONOUN) {
+                if($char->coins < self::AFFECT_CHANGE_PRONOUN_COST) {
+                    throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change pronoun', $char, $char, [
+                        'affectId' => $affectId,
+                        'action' => $action,
+                        'command' => $command,
+                        'coins' => self::AFFECT_CHANGE_PRONOUN_COST
+                    ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                }
 
-            $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_CLASS_COST);
-            $this->characterModel->changeClass($char, $class);
+                $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_PRONOUN_COST);
+                $this->characterModel->changePronoun($char, $command);
 
-            $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Class changed', $char, $char, [
-                'affectId' => $affectId,
-                'action' => $action,
-                'command' => $command,
-                'coins' => self::AFFECT_CHANGE_CLASS_COST
-            ]);
-
-            return $this->characterModel->refresh($char);
-        }
-
-        if($affectId == self::AFFECT_CHANGE_PRONOUN) {
-            if($char->coins < self::AFFECT_CHANGE_PRONOUN_COST) {
-                throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Not enough coins to change pronoun', $char, $char, [
+                $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Pronoun changed', $char, $char, [
                     'affectId' => $affectId,
                     'action' => $action,
                     'command' => $command,
                     'coins' => self::AFFECT_CHANGE_PRONOUN_COST
-                ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+                ]);
+
+                return $this->characterModel->refresh($char);
             }
 
-            $this->characterModel->chargeCoins($char, self::AFFECT_CHANGE_PRONOUN_COST);
-            $this->characterModel->changePronoun($char, $command);
-
-            $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'buyAffect', 'Pronoun changed', $char, $char, [
+            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Invalid affectId', $char, $char, [
                 'affectId' => $affectId,
                 'action' => $action,
-                'command' => $command,
-                'coins' => self::AFFECT_CHANGE_PRONOUN_COST
-            ]);
-
-            return $this->characterModel->refresh($char);
-        }
-
-        throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyAffect', 'Invalid affectId', $char, $char, [
-            'affectId' => $affectId,
-            'action' => $action,
-            'command' => $command
-        ])->asException(DFException::BAD_REQUEST);
-
+                'command' => $command
+            ])->asException(DFException::BAD_REQUEST);
+        });
     }
 
 }

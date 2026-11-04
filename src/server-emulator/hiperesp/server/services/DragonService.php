@@ -18,12 +18,16 @@ class DragonService extends Service {
 
 
     public function hatchDragon(CharacterVO $char): array {
-        $this->characterModel->addDragon($char);
-        return $this->dragonModel->hatchDragon($char);
+        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char): array {
+            $this->characterModel->addDragon($char);
+            return $this->dragonModel->hatchDragon($char);
+        });
     }
 
     public function feedDragon(CharacterVO $char, int $foodId): array {
-        return $this->dragonModel->feedDragon($char, $foodId);
+        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($foodId): array {
+            return $this->dragonModel->feedDragon($char, $foodId);
+        });
     }
 
     public function trainDragon(CharacterVO $char, int $debuff, int $buff, int $melee, int $magic, int $heal): array {

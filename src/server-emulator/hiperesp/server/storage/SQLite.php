@@ -98,4 +98,11 @@ class SQLite extends SQL {
         return "ALTER TABLE {$oldName} RENAME TO {$newName}";
     }
 
+    #[\Override]
+    protected function beginTransaction(): void {
+        // IMMEDIATE takes the write lock up front so concurrent PHP workers cannot
+        // both read stale currency and then overwrite each other.
+        $this->pdo->exec('BEGIN IMMEDIATE');
+    }
+
 }

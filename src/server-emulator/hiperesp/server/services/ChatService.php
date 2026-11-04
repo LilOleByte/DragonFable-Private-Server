@@ -40,10 +40,10 @@ class ChatService extends Service {
 
     #[ChatCommand("/unpin", "Unpin the first pinned message", true)]
     public function commandUnpin(UserVO $user): void {
-        $chatFile = $this->getChatFile();
-        $messages = \json_decode(\file_get_contents($chatFile), true);
-        \array_shift($messages['pinned']);
-        \file_put_contents($chatFile, \json_encode($messages));
+        $this->mutateChatData(function(array $messages): array {
+            \array_shift($messages['pinned']);
+            return $messages;
+        });
     }
 
     #[ChatCommand("/server", "Send a message as the server", true)]
@@ -65,34 +65,34 @@ class ChatService extends Service {
 
     #[ChatCommand("/vanish", "Clear all messages sent from you")]
     public function commandVanish(UserVO $user): void {
-        $chatFile = $this->getChatFile();
-        $messages = \json_decode(\file_get_contents($chatFile), true);
-        $messages['global'] = \array_filter($messages['global'], fn($m) => $m['from']['id'] != $user->id);
-        \file_put_contents($chatFile, \json_encode($messages));
+        $this->mutateChatData(function(array $messages) use ($user): array {
+            $messages['global'] = \array_values(\array_filter($messages['global'], fn($m) => $m['from']['id'] != $user->id));
+            return $messages;
+        });
     }
 
     #[ChatCommand("/clear_user", "Clear all messages from a specific user (by ID)", true)]
     public function commandClearUser(UserVO $user, int $userId): void {
-        $chatFile = $this->getChatFile();
-        $messages = \json_decode(\file_get_contents($chatFile), true);
-        $messages['global'] = \array_filter($messages['global'], fn($m) => $m['from']['id'] != $userId);
-        \file_put_contents($chatFile, \json_encode($messages));
+        $this->mutateChatData(function(array $messages) use ($userId): array {
+            $messages['global'] = \array_values(\array_filter($messages['global'], fn($m) => $m['from']['id'] != $userId));
+            return $messages;
+        });
     }
 
     #[ChatCommand("/clear", "Clear all messages, but keep pinned messages", true)]
     public function commandClearGlobal(UserVO $user): void {
-        $chatFile = $this->getChatFile();
-        $messages = \json_decode(\file_get_contents($chatFile), true);
-        $messages['global'] = [];
-        \file_put_contents($chatFile, \json_encode($messages));
+        $this->mutateChatData(function(array $messages): array {
+            $messages['global'] = [];
+            return $messages;
+        });
     }
 
     #[ChatCommand("/clear_pinned", "Clear the pinned messages", true)]
     public function commandClearAll(UserVO $user): void {
-        $chatFile = $this->getChatFile();
-        $messages = \json_decode(\file_get_contents($chatFile), true);
-        $messages['pinned'] = [];
-        \file_put_contents($chatFile, \json_encode($messages));
+        $this->mutateChatData(function(array $messages): array {
+            $messages['pinned'] = [];
+            return $messages;
+        });
     }
 
     #[ChatCommand("/help")]
@@ -156,40 +156,39 @@ class ChatService extends Service {
     }
 
     private function addUserMessage(?UserVO $user, string $message, ?UserVO $to = null, bool $isPinned = false, bool $isAlert = false, bool $isHint = false): void {
-        $chatFile = $this->getChatFile();
-        $messages = \json_decode(\file_get_contents($chatFile), true);
+        $this->mutateChatData(function(array $messages) use ($user, $message, $to, $isPinned, $isAlert, $isHint): array {
+            $maxGlobalHistory = 64;
+            $maxPinnedHistory = 1;
 
-        $maxGlobalHistory = 64;
-        $maxPinnedHistory = 1;
+            $messageArrayKey = $isPinned ? 'pinned' : 'global';
 
-        $messageArrayKey = $isPinned ? 'pinned' : 'global';
+            $messages[$messageArrayKey][] = [
+                'id' => \uniqid('', true),
+                'time' => \time(),
 
-        $messages[$messageArrayKey][] = [
-            'id' => \uniqid(),
-            'time' => \time(),
+                'type' => (function() use($user, $isHint, $isAlert) {
+                    if($isHint) return "hint";
+                    if($isAlert) return "alert";
+                    if($user) return "user";
+                    return "system";
+                })(),
+                'from' => [
+                    'id' => $user?->id,
+                    'username' => $user?->username,
+                    'isAdmin' => $user?->id == 1,
+                ],
+                'to' => $to?->id,
+                'message' => $message,
+            ];
 
-            'type' => (function() use($user, $isHint, $isAlert) {
-                if($isHint) return "hint";
-                if($isAlert) return "alert";
-                if($user) return "user";
-                return "system";
-            })(),
-            'from' => [
-                'id' => $user?->id,
-                'username' => $user?->username,
-                'isAdmin' => $user?->id == 1,
-            ],
-            'to' => $to?->id,
-            'message' => $message,
-        ];
+            if($isPinned) {
+                $messages[$messageArrayKey] = \array_slice($messages[$messageArrayKey], -$maxPinnedHistory);
+            } else {
+                $messages[$messageArrayKey] = \array_slice($messages[$messageArrayKey], -$maxGlobalHistory);
+            }
 
-        if($isPinned) {
-            $messages[$messageArrayKey] = \array_slice($messages[$messageArrayKey], -$maxPinnedHistory);
-        } else {
-            $messages[$messageArrayKey] = \array_slice($messages[$messageArrayKey], -$maxGlobalHistory);
-        }
-
-        \file_put_contents($chatFile, \json_encode($messages));
+            return $messages;
+        });
     }
 
     public function addMessage(string $userToken, string $message): void {
@@ -222,8 +221,7 @@ class ChatService extends Service {
     }
 
     public function getMessages(?string $userToken): array {
-        $chatFile = $this->getChatFile();
-        $messages = \json_decode(\file_get_contents($chatFile), true);
+        $messages = $this->readChatData();
 
         if($userToken) {
             $user = $this->userModel->getBySessionToken($userToken);
@@ -252,15 +250,94 @@ class ChatService extends Service {
         })));
     }
 
+    private function emptyChatData(): array {
+        return [
+            'global' => [],
+            'pinned' => [],
+        ];
+    }
+
+    private function normalizeChatData(mixed $messages): array {
+        if(!\is_array($messages)) {
+            return $this->emptyChatData();
+        }
+        if(!isset($messages['global']) || !\is_array($messages['global'])) {
+            $messages['global'] = [];
+        }
+        if(!isset($messages['pinned']) || !\is_array($messages['pinned'])) {
+            $messages['pinned'] = [];
+        }
+        return $messages;
+    }
+
     private function getChatFile(): string {
         $chatFile = \sys_get_temp_dir().\DIRECTORY_SEPARATOR.'df-chat.json';
         if(!\file_exists($chatFile)) {
-            \file_put_contents($chatFile, \json_encode([
-                'global' => [],
-                'pinned' => [],
-            ]));
+            $fh = \fopen($chatFile, 'c+');
+            if($fh === false) {
+                throw new \RuntimeException('Unable to open chat file');
+            }
+            try {
+                if(!\flock($fh, \LOCK_EX)) {
+                    throw new \RuntimeException('Unable to lock chat file');
+                }
+                \clearstatcache(true, $chatFile);
+                if(\filesize($chatFile) === 0) {
+                    $this->writeChatHandle($fh, $this->emptyChatData());
+                }
+            } finally {
+                \flock($fh, \LOCK_UN);
+                \fclose($fh);
+            }
         }
         return $chatFile;
+    }
+
+    private function withChatFile(int $lock, callable $callback): mixed {
+        $chatFile = $this->getChatFile();
+        $fh = \fopen($chatFile, 'c+');
+        if($fh === false) {
+            throw new \RuntimeException('Unable to open chat file');
+        }
+        try {
+            if(!\flock($fh, $lock)) {
+                throw new \RuntimeException('Unable to lock chat file');
+            }
+            return $callback($fh);
+        } finally {
+            \flock($fh, \LOCK_UN);
+            \fclose($fh);
+        }
+    }
+
+    private function readChatHandle($fh): array {
+        \rewind($fh);
+        $raw = \stream_get_contents($fh);
+        if($raw === false || $raw === '') {
+            return $this->emptyChatData();
+        }
+        return $this->normalizeChatData(\json_decode($raw, true));
+    }
+
+    private function writeChatHandle($fh, array $messages): void {
+        \ftruncate($fh, 0);
+        \rewind($fh);
+        \fwrite($fh, \json_encode($messages));
+        \fflush($fh);
+    }
+
+    private function readChatData(): array {
+        return $this->withChatFile(\LOCK_SH, function($fh): array {
+            return $this->readChatHandle($fh);
+        });
+    }
+
+    private function mutateChatData(callable $mutator): void {
+        $this->withChatFile(\LOCK_EX, function($fh) use ($mutator): void {
+            $messages = $this->readChatHandle($fh);
+            $messages = $this->normalizeChatData($mutator($messages));
+            $this->writeChatHandle($fh, $messages);
+        });
     }
 
     public function eventSource(?string $userToken): callable {

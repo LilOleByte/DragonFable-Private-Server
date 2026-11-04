@@ -105,4 +105,15 @@ class MySQL extends SQL {
         return "RENAME TABLE {$oldName} TO {$newName}";
     }
 
+    #[\Override]
+    public function lockDocument(string $collection, int $id): void {
+        $stmt = $this->pdo->prepare(
+            "SELECT `id` FROM {$this->prefix}{$collection} WHERE `id` = ? AND `_isDeleted` = 0 FOR UPDATE"
+        );
+        $stmt->execute([$id]);
+        if($stmt->fetch(\PDO::FETCH_ASSOC) === false) {
+            throw new \Exception("Failed to lock {$collection} id {$id}");
+        }
+    }
+
 }

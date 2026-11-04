@@ -32,6 +32,7 @@ abstract class SQL extends Storage {
         $password = isset($options['password']) ? $options['password'] : null;
 
         $pdoOptions = isset($options['pdoOptions']) ? $options['pdoOptions'] : [];
+        $pdoOptions[\PDO::ATTR_ERRMODE] = \PDO::ERRMODE_EXCEPTION;
 
         $this->pdo = new \PDO($dsn, $username, $password, $pdoOptions);
 
@@ -88,13 +89,37 @@ abstract class SQL extends Storage {
                 $sql .= "OFFSET {$skip} ";
             }
         }
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($sqlParams);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch(\Exception $e) {
-            return [];
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($sqlParams);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    #[\Override]
+    final public function transaction(callable $callback): mixed {
+        if($this->pdo->inTransaction()) {
+            return $callback();
         }
+
+        $this->beginTransaction();
+        try {
+            $result = $callback();
+            $this->pdo->commit();
+            return $result;
+        } catch(\Throwable $e) {
+            if($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    protected function beginTransaction(): void {
+        $this->pdo->beginTransaction();
+    }
+
+    #[\Override]
+    public function lockDocument(string $collection, int $id): void {
+        $this->select($collection, ['id' => $id], 1);
     }
 
     #[\Override]
