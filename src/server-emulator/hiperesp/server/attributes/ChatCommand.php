@@ -14,7 +14,7 @@ class ChatCommand {
         if(!$command) {
             throw new \InvalidArgumentException("Command cannot be empty");
         }
-        if(!$command[0] === "/") {
+        if($command[0] !== "/") {
             throw new \InvalidArgumentException("Command must start with /");
         }
     }

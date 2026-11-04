@@ -16,7 +16,7 @@ class EmailService extends Service {
         ]);
     }
 
-    public function sendRecoveryEmail(UserVO $user, string $code): true {
+    public function sendRecoveryEmail(UserVO $user, string $code): bool {
         return $this->sendEmail(userOrEmail: $user, template: 'recover-password', params: [
             'servername' => $this->settings->serverName,
             'username' => $user->username,
