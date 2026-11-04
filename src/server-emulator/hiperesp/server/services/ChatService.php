@@ -3,7 +3,6 @@ namespace hiperesp\server\services;
 
 use hiperesp\server\attributes\ChatCommand;
 use hiperesp\server\attributes\Inject;
-use hiperesp\server\exceptions\DFException;
 use hiperesp\server\models\UserModel;
 use hiperesp\server\vo\UserVO;
 
@@ -195,9 +194,6 @@ class ChatService extends Service {
 
     public function addMessage(string $userToken, string $message): void {
         $user = $this->userModel->getBySessionToken($userToken);
-        if(!$user) {
-            throw new DFException('Invalid token');
-        }
 
         $message = \trim($message);
 

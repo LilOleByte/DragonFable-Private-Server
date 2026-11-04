@@ -51,7 +51,7 @@ enum Output {
             \http_response_code(500);
             match($this) {
                 Output::NINJA2STR => $this->ninja2($exception->getMessage()),
-                Output::NINJA2XML, Output::XML => $this->xml(new \SimpleXMLElement("<error>{$exception->getMessage()}</error>")),
+                Output::NINJA2XML, Output::XML => $this->xml($this->unexpectedErrorXml($exception->getMessage())),
                 Output::FORM => $this->form(["error" => $exception->getMessage()]),
                 Output::RAW, Output::HTML => $this->raw($exception->getMessage()),
                 Output::REDIRECT_301, Output::REDIRECT_302 => $this->redirect(302, "/error/500?".\http_build_query(["error" => $exception->getMessage()])),
@@ -73,6 +73,12 @@ enum Output {
 
         $ninja2 = new DragonFableNinja2;
         $this->xml(new \SimpleXMLElement("<ninja2>{$ninja2->encrypt($toEncrypt)}</ninja2>"));
+    }
+
+    private function unexpectedErrorXml(string $message): \SimpleXMLElement {
+        $xml = new \SimpleXMLElement('<error/>');
+        $xml[0] = $message;
+        return $xml;
     }
 
     private function xml(\SimpleXMLElement $xml): void {
