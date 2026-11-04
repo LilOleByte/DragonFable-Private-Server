@@ -73,11 +73,13 @@ final class Definition {
 
                     "serverName"            => "DragonFable Private Server",
 
-                    "gameSwf"               => "game15_9_59-patched.swf",
-                    "serverVersion"         => "DFPS 15.9.59-indev", // appears in the game client version, only display
+                    "gameSwf"               => "game15_9_63-patched.swf",
+                    "serverVersion"         => "DFPS 15.9.63-indev", // appears in the game client version, only display
                     //                                this is the ^ last visible char (aprox. 19 chars)
-                    "serverLocation"        => "server-emulator/server.php/", // You can also use something like "http://localhost:40000/server-emulator/server.php/";
-                    "gamefilesPath"         => "cdn/gamefiles/cache.php/",   // You can also use something like "http://localhost:40000/cdn/gamefiles/cache.php/";
+                    // Prefer root-absolute or full http(s) URLs so Flash/Ruffle can reach the API
+                    // when the game SWF is loaded via cache.php (relative paths break).
+                    "serverLocation"        => "/server-emulator/server.php/",
+                    "gamefilesPath"         => "/cdn/gamefiles/cache.php/",
 
                     "homeUrl"               => "../../../index.html",
                     "playUrl"               => "../../../play.html",

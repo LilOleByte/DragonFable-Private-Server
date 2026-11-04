@@ -1,4 +1,6 @@
 _root.conn = new Object();
+_root.conn.isWorking = new Object();
+_root.conn.isWorking = false;
 if(_url.indexOf("file://") == -1)
 {
    _root.conn.url = "";

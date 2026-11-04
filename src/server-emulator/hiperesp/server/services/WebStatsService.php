@@ -18,12 +18,31 @@ class WebStatsService extends Service {
         return [
             "gamemovie"     => $settings?->gameSwf,
             "signUpMessage" => $settings?->signUpMessage,
-            "server"        => $settings?->serverLocation,
-            "gamefilesPath" => $settings?->gamefilesPath,
+            // Flash/Ruffle needs a same-origin absolute URL when the SWF is loaded via cache.php.
+            "server"        => $this->absolutePublicUrl($settings?->serverLocation),
+            "gamefilesPath" => $this->absolutePublicUrl($settings?->gamefilesPath),
             "gameVersion"   => $settings?->serverVersion,
             "online"        => $this->getStatus()['online'] ? "true" : "false",
             "end"           => "here",
         ];
+    }
+
+    private function absolutePublicUrl(?string $path): ?string {
+        if($path === null || $path === '') {
+            return $path;
+        }
+        if(\preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (($_SERVER['SERVER_PORT'] ?? null) === '443')
+            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $scheme = $https ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST']
+            ?? (($_SERVER['SERVER_NAME'] ?? '127.0.0.1') . (isset($_SERVER['SERVER_PORT']) ? ':' . $_SERVER['SERVER_PORT'] : ''));
+        $path = '/' . \ltrim($path, '/');
+        return "{$scheme}://{$host}{$path}";
     }
 
     public function stats(): array {

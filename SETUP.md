@@ -10,7 +10,7 @@ If you prefer, here is a video doing this setup: https://youtu.be/6HeIr6CwJeg.
 
 - [XAMPP 8.2](https://www.apachefriends.org/download.html)
 - [DragonFable Private Server Files (PHP 8.2)](https://github.com/hiperesp/DragonFable-Private-Server/archive/refs/heads/php8.2.zip)
-- **Optional**: [Offline Gamefiles from mega](https://mega.nz/file/OAcxQLRC#hcRC-_LsVnN41y9Af9lTPjMHLMtL-wO2ILHJ9dpeGG0) (updated at 2026-08-04)
+- **Optional**: [Offline Gamefiles from mega](https://mega.nz/file/OAcxQLRC#hcRC-_LsVnN41y9Af9lTPjMHLMtL-wO2ILHJ9dpeGG0) (updated at 2026-08-04). This repo’s `src/cdn/gamefiles/` is already synced for client **15.9.63** (use `game15_9_63-patched.swf`).
 
 ### 1. Prepare files:
 
@@ -126,7 +126,7 @@ If you want to upgrade the server to a newer version, you can follow the steps b
 
     **Note**: If you don't create the `.config.php` file, the server will use the default system environment variables.
 
-3. (Optional) Download the offline gamefiles from [mega, click here](https://mega.nz/file/OAcxQLRC#hcRC-_LsVnN41y9Af9lTPjMHLMtL-wO2ILHJ9dpeGG0) (updated at 2026-08-04) and extract it to `/src/cdn/gamefiles/`\
+3. (Optional) Download the offline gamefiles from [mega, click here](https://mega.nz/file/OAcxQLRC#hcRC-_LsVnN41y9Af9lTPjMHLMtL-wO2ILHJ9dpeGG0) (updated at 2026-08-04) and extract it to `/src/cdn/gamefiles/`. Prefer the tree already in this repo for **15.9.63**.\
     **Note**: If you don't download the gamefiles, the server will progressively download them as each game file is requested **only if you use the `cache` mode at `gamefilesPath` settings**. This means that as you play, the server will fetch the necessary files in real-time, ensuring you can continue playing without interruption.
 
 ### Usage:
@@ -169,7 +169,7 @@ If you want to upgrade the server to a newer version, you can follow the steps b
 
     You can use MySQL or SQLite. See `/src/server-emulator/.config.default.php` for more details. By default, the server will use SQLite.
 
-4. (Optional) Download the offline gamefiles from [mega, click here](https://mega.nz/file/OAcxQLRC#hcRC-_LsVnN41y9Af9lTPjMHLMtL-wO2ILHJ9dpeGG0) (updated at 2026-08-04) and extract it to `public_html/cdn/gamefiles/`\
+4. (Optional) Download the offline gamefiles from [mega, click here](https://mega.nz/file/OAcxQLRC#hcRC-_LsVnN41y9Af9lTPjMHLMtL-wO2ILHJ9dpeGG0) (updated at 2026-08-04) and extract it to `public_html/cdn/gamefiles/`. Prefer the tree already in this repo for **15.9.63**.\
     **Note**: If you don't download the gamefiles, the server will progressively download them as each game file is requested **only if you use the `cache` mode at `gamefilesPath` settings**. This means that as you play, the server will fetch the necessary files in real-time, ensuring you can continue playing without interruption.
 
 ### Usage:

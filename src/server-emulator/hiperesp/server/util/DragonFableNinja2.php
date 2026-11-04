@@ -23,7 +23,11 @@ class DragonFableNinja2 {
             $decrypted .= \chr($charP1 - $charP2 - $charP3);
         }
 
-        if(!\mb_check_encoding($decrypted, "UTF-8")) {
+        // Prefer mbstring when present; fall back so CLI/dev PHP without php-mbstring still works.
+        $validUtf8 = \function_exists('mb_check_encoding')
+            ? \mb_check_encoding($decrypted, 'UTF-8')
+            : ($decrypted === '' || \preg_match('//u', $decrypted) === 1);
+        if(!$validUtf8) {
             throw new \Exception("Invalid decrypted text. Verify the ninja2 key.");
         }
 

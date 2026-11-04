@@ -1,3 +1,5 @@
 _root.conn = new Object();
+_root.conn.isWorking = new Object();
+_root.conn.isWorking = false;
 _root.conn.url = _root.core.server;
 _root.conn.login = function(strUsername, strPassword)

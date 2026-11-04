@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
-define('OS', 'windows'); // windows, mac, linux
-define('SWF_FILE', 'game15_9_59');
+define('OS', 'linux'); // windows, mac, linux
+define('SWF_FILE', 'game15_9_63');
 
 $replaces = [
     # REPLACE SOME FRONTEND URLS TO DYNAMIC URLS
@@ -13,13 +13,13 @@ $replaces = [
     "\"<a href=\'https://www.dragonfable.com/df-signup.asp\'><u>Create a new account.</u></a>\"" => "\"<a href=\'\" + _root.conn.url + \"web/df-signup.asp\'><u>Create a new account.</u></a>\"",
     "\"http://dragonfable.battleon.com/game/cf-dacheck.asp\"" => "_root.conn.url + \"cf-dacheck.asp\"",
     "\"https://dragonfable.battleon.com/game/cf-dacheck.asp\"" => "_root.conn.url + \"cf-dacheck.asp\"",
+    "getURL(\"https://www.dragonfable.com/\", \"_BLANK\");" => "getURL(_root.conn.url + \"web/default.asp\", \"_BLANK\");",
 
     # REPLACE BUILD VERSION TO DYNAMIC VERSION STRING
     "var strBuild = " => "var strBuild = _root.core.gameVersion; //",
 
     # HIDE "SPECIAL CHARACTER SLOT" BUTTONS IF USER DOESN'T HAVE THE SPECIAL CHARACTER "ASH"
-    '_root.game.btnChar6.gotoAndPlay("New");' => '_root.game.btnChar6.gotoAndStop("Blank");',
-    '_root.game.btnChar7.gotoAndPlay("New");' => '_root.game.btnChar7.gotoAndStop("Blank");',
+    # Removed in game15_9_63 — btnChar6/btnChar7 "New" frames no longer present in exported scripts.
 ];
 
 $complexReplaces = [
@@ -80,7 +80,7 @@ if(!\is_dir($scriptsDir)) {
     } else if(OS==='mac') {
         $cmd = "java -jar /Applications/FFDec.app/Contents/Resources/ffdec.jar -export script \"{$scriptsDir}\" {$file}\n";
     } else if(OS==='linux') {
-        $cmd = "java -jar /opt/ffdec/ffdec.jar -export script \"{$scriptsDir}\" {$file}\n";
+        $cmd = "java -jar /usr/share/java/ffdec/ffdec.jar -export script \"{$scriptsDir}\" {$file}\n";
     } else {
         echo "Unknown OS\n";
         die;
@@ -169,7 +169,7 @@ if(OS==='windows') {
 } else if(OS==='mac') {
     $cmd = "java -jar /Applications/FFDec.app/Contents/Resources/ffdec.jar -importScript {$outfile} {$outfile} \"{$replacedScriptsDir}\"\n";
 } else if(OS==='linux') {
-    $cmd = "java -jar /opt/ffdec/ffdec.jar -importScript {$outfile} {$outfile} \"{$replacedScriptsDir}\"\n";
+    $cmd = "java -jar /usr/share/java/ffdec/ffdec.jar -importScript {$outfile} {$outfile} \"{$replacedScriptsDir}\"\n";
 } else {
     echo "Unknown OS\n";
     die;

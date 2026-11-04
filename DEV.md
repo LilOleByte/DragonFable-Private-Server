@@ -42,8 +42,10 @@ This tool will patch the new `game*.swf` files. The idea is when a new release i
 This is the patched files. You can't use the original files from the game, as some things are hardcoded to work only with the original server.
 
 - `/src/cdn/loader/DFLoader-patched.swf`: Added ability to change the gamefiles path + server path through DFversion by flashvars (if not provided, `web/DFversion.txt` will be used)
-- `/src/cdn/gamefiles/game*-patched.swf`: Some bug fixes + Improvements + Match server path from `DFLoader-patched.swf`
+- `/src/cdn/gamefiles/game*-patched.swf`: Some bug fixes + Improvements + Match server path from `DFLoader-patched.swf`. Current default: `game15_9_63-patched.swf`.
 - `/src/cdn/flash/usersignup-9Dec15-patched.swf`: Match server path like `DFLoader-patched.swf` does.
+
+When Artix ships a newer `game*.swf`, set `SWF_FILE` in `dev-tools/patch-new-swf/patch-swf.php`, run the FFDec export/patch/import flow, copy `*-patched.swf` into `src/cdn/gamefiles/`, and update `gameSwf` / `serverVersion` in `Definition.php` (and the DB `settings` row if setup already ran).
 
 ### How to debug the swf files?
 
