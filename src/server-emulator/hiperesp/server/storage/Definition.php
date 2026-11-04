@@ -34,9 +34,13 @@ final class Definition {
 
                 "dragonAmuletForAll"    => [ 'BIT', 'DEFAULT' => 0 ],
 
-                "revalidateClientValues" => [ 'BIT', 'DEFAULT' => 0 ],
+                "revalidateClientValues" => [ 'BIT', 'DEFAULT' => 1 ],
                 "banInvalidClientValues" => [ 'BIT', 'DEFAULT' => 0 ],
+                "enforceQuestMinTime"    => [ 'BIT', 'DEFAULT' => 1 ],
+                "validateQuestLoot"      => [ 'BIT', 'DEFAULT' => 1 ],
                 "canDeleteUpgradedChar"  => [ 'BIT', 'DEFAULT' => 1 ],
+                "recoveryMaxAttempts"    => [ 'INTEGER', 'DEFAULT' => 5 ],
+                "recoveryResendSeconds"  => [ 'INTEGER', 'DEFAULT' => 60 ],
 
                 "nonUpgradedChars"              => [ 'INTEGER', 'DEFAULT' => 3 ],
                 "upgradedChars"                 => [ 'INTEGER', 'DEFAULT' => 6 ],
@@ -90,9 +94,13 @@ final class Definition {
 
                     "dragonAmuletForAll" => 0, // if true, all players will have dragon amulet (DA) for free
 
-                    "revalidateClientValues" => 1, // some inconsistencies in the client can occur.
-                    "banInvalidClientValues" => 1, // some users can be banned injustly if inconsistencies are found.
+                    "revalidateClientValues" => 1, // clamp/correct client-supplied economy values using server/quest data
+                    "banInvalidClientValues" => 0, // keep off by default; client updates can create false positives
+                    "enforceQuestMinTime"    => 1, // use quest.minTime from migrated quest data
+                    "validateQuestLoot"      => 1, // only allow items present in migrated quest_item data
                     "canDeleteUpgradedChar"  => 1, // if true, the user can delete an upgraded character.
+                    "recoveryMaxAttempts"    => 5,
+                    "recoveryResendSeconds"  => 60,
 
                     "nonUpgradedMaxBagSlots"=> 30,
                     "upgradedMaxBagSlots"   => 90,
@@ -596,6 +604,18 @@ final class Definition {
 
                 "ip"            => [ 'STRING' => 255 ],
                 "userAgent"     => [ 'STRING' => 255 ],
+            ],
+            "data" => [],
+        ],
+        // Per-character quest completion times for minTime enforcement.
+        // Empty seed data: values are runtime-only and survive user migration.
+        "char_quest_time" => [
+            "migrateOldData" => true,
+            "structure" => [
+                "id"              => [ 'INTEGER', 'GENERATED', 'PRIMARY_KEY' ],
+                "charId"          => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "char", "field" => "id" ], 'INDEX' ],
+                "questId"         => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "quest", "field" => "id" ], 'INDEX' ],
+                "lastCompletedAt" => [ 'DATETIME' ],
             ],
             "data" => [],
         ],

@@ -122,7 +122,14 @@ class CharacterVO extends ValueObject implements Bannable {
 
     public int $statPoints {
         get {
-            return ($this->level - 1) * 5;
+            $spent = $this->strength
+                + $this->dexterity
+                + $this->intelligence
+                + $this->luck
+                + $this->charisma
+                + $this->endurance
+                + $this->wisdom;
+            return \max(0, ($this->level - 1) * 5 - $spent);
         }
     }
 

@@ -153,7 +153,7 @@ class CharacterModel extends Model {
 
     public function refundItem(CharacterVO $char, CharacterItemVO $charItem, int $quantity, int $returnPercent): void {
         $item = $charItem->getItem();
-        if($quantity > $charItem->count) {
+        if($quantity < 1 || $quantity > $charItem->count) {
             throw new DFException(DFException::ITEM_NOT_ENOUGH);
         }
 
@@ -162,8 +162,8 @@ class CharacterModel extends Model {
 
         $this->storage->update(self::COLLECTION, [
             'id' => $char->id,
-            'gold' => \ceil($char->gold + $item->getPriceGold() * $returnProportion),
-            'coins' => \ceil($char->coins + $item->getPriceCoins() * $returnProportion)
+            'gold' => \ceil($char->gold + $item->getPriceGold() * $returnProportion * $quantity),
+            'coins' => \ceil($char->coins + $item->getPriceCoins() * $returnProportion * $quantity)
         ]);
     }
 
@@ -223,20 +223,21 @@ class CharacterModel extends Model {
         $level = $char->level;
         $coins = $char->coins;
 
+        // Caps come from migrated quest rows, so client data upgrades keep working.
         if(isset($reward['experience'])) {
-            $experience += \min($reward['experience'], $quest->maxExp);
+            $experience += \min(\max(0, (int)$reward['experience']), $quest->maxExp);
         }
         if(isset($reward['gems'])) {
-            $gems += \min($reward['gems'], $quest->maxGems);
+            $gems += \min(\max(0, (int)$reward['gems']), $quest->maxGems);
         }
         if(isset($reward['gold'])) {
-            $gold += \min($reward['gold'], $quest->maxGold);
+            $gold += \min(\max(0, (int)$reward['gold']), $quest->maxGold);
         }
         if(isset($reward['silver'])) {
-            $silver += \min($reward['silver'], $quest->maxSilver);
+            $silver += \min(\max(0, (int)$reward['silver']), $quest->maxSilver);
         }
         if(isset($reward['coins'])) {
-            $coins += $reward['coins']; // no max coins is defined in the quest
+            $coins += \max(0, (int)$reward['coins']);
         }
 
         // if player gets more experience than needed to level up, will level up only once

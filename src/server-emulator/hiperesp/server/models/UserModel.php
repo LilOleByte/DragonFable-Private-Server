@@ -83,6 +83,9 @@ class UserModel extends Model {
     public function getBySessionToken(string $sessionToken): UserVO {
         $user = $this->storage->select(self::COLLECTION, ['sessionToken' => $sessionToken]);
         if(isset($user[0]) && $user = $user[0]) {
+            if($user['banned']) {
+                throw new DFException(DFException::USER_BANNED);
+            }
             return new UserVO($user);
         }
         throw new DFException(DFException::INVALID_SESSION);
@@ -97,10 +100,22 @@ class UserModel extends Model {
     }
 
     public function defineRecoveryCode(UserVO $user): string {
+        if($user->recoveryExpires && \strtotime($user->recoveryExpires) > \time()) {
+            // Keep the existing code until it expires so resends cannot reset brute-force windows.
+            return (string)$user->recoveryCode;
+        }
         $code = \str_pad((string)\random_int(0, 999999), 6, '0', \STR_PAD_LEFT);
         $expires = \date('c', \strtotime('+15 minutes'));
         $this->storage->update(self::COLLECTION, [ 'id' => $user->id, 'recoveryCode' => $code, 'recoveryExpires' => $expires ]);
         return $code;
+    }
+
+    public function clearRecoveryCode(UserVO $user): void {
+        $this->storage->update(self::COLLECTION, [
+            'id' => $user->id,
+            'recoveryCode' => null,
+            'recoveryExpires' => null,
+        ]);
     }
 
     public function getByChar(CharacterVO $char): UserVO {
@@ -112,11 +127,24 @@ class UserModel extends Model {
     }
 
     public function ban(UserVO $user): void {
-        $this->storage->update(self::COLLECTION, [ 'id' => $user->id, 'banned' => 1 ]);
+        // Rotate the session token so any in-flight client token stops working immediately.
+        $this->storage->update(self::COLLECTION, [
+            'id' => $user->id,
+            'banned' => 1,
+            'sessionToken' => $this->_generateUniqueSessionToken(),
+            'recoveryCode' => null,
+            'recoveryExpires' => null,
+        ]);
     }
 
     public function changePassword(UserVO $user, string $password): void {
-        $this->storage->update(self::COLLECTION, [ 'id' => $user->id, 'password' => \password_hash($password, \PASSWORD_DEFAULT), 'recoveryCode' => null, 'recoveryExpires' => null ]);
+        $this->storage->update(self::COLLECTION, [
+            'id' => $user->id,
+            'password' => \password_hash($password, \PASSWORD_DEFAULT),
+            'recoveryCode' => null,
+            'recoveryExpires' => null,
+            'sessionToken' => $this->_generateUniqueSessionToken(),
+        ]);
     }
 
 }

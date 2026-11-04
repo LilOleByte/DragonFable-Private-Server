@@ -5,6 +5,7 @@ use hiperesp\server\attributes\Inject;
 use hiperesp\server\exceptions\DFException;
 use hiperesp\server\models\CharacterItemModel;
 use hiperesp\server\models\CharacterModel;
+use hiperesp\server\models\CharacterQuestTimeModel;
 use hiperesp\server\models\ClassModel;
 use hiperesp\server\models\ItemModel;
 use hiperesp\server\models\LogsModel;
@@ -27,6 +28,7 @@ class CharacterService extends Service {
     #[Inject] private CharacterItemModel $characterItemModel;
     #[Inject] private QuestMergeModel $questMergeModel;
     #[Inject] private QuestModel $questModel;
+    #[Inject] private CharacterQuestTimeModel $characterQuestTimeModel;
     #[Inject] private LogsModel $logsModel;
     #[Inject] private SettingsVO $settings;
 
@@ -99,6 +101,14 @@ class CharacterService extends Service {
                 ])->asException(DFException::BAD_REQUEST);
             }
 
+            foreach([$wisdom, $charisma, $luck, $endurance, $dexterity, $intelligence, $strength] as $delta) {
+                if($delta < 0) {
+                    throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'trainStats', "Negative stat delta for train stats.", $char, $char, [
+                        'deltas' => compact('wisdom', 'charisma', 'luck', 'endurance', 'dexterity', 'intelligence', 'strength')
+                    ])->asException(DFException::BAD_REQUEST);
+                }
+            }
+
             $statPointsCost = $wisdom + $charisma + $luck + $endurance + $dexterity + $intelligence + $strength;
             if($statPointsCost > $char->statPoints) {
                 throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'trainStats', "Not enough stat points to train stats.", $char, $char, [
@@ -136,7 +146,7 @@ class CharacterService extends Service {
 
     public function buyBankSlots1(CharacterVO $char, int $slots): void {
         $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($slots): void {
-            if($slots > (10 - $char->bankSlots)) {
+            if($slots < 1 || $slots > (10 - $char->bankSlots)) {
                 throw new DFException(DFException::BAD_REQUEST);
             }
 
@@ -154,7 +164,7 @@ class CharacterService extends Service {
 
     public function buyBankSlots2(CharacterVO $char, int $slots): void {
         $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($slots): void {
-            if($char->bankSlots < 10 || $slots > (15 - $char->bankSlots)) {
+            if($slots < 1 || $char->bankSlots < 10 || $slots > (15 - $char->bankSlots)) {
                 throw new DFException(DFException::BAD_REQUEST);
             }
 
@@ -172,7 +182,7 @@ class CharacterService extends Service {
 
     public function buyBankSlots3(CharacterVO $char, int $slots): void {
         $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($slots): void {
-            if($char->bankSlots < 15 || $slots > (100 - $char->bankSlots)) {
+            if($slots < 1 || $char->bankSlots < 15 || $slots > (100 - $char->bankSlots)) {
                 throw new DFException(DFException::BAD_REQUEST);
             }
 
@@ -195,7 +205,7 @@ class CharacterService extends Service {
                 $defaultBagSlots = 50;
             }
 
-            if(($slots + $char->bagSlots) > ($defaultBagSlots + 10)) {
+            if($slots < 1 || ($slots + $char->bagSlots) > ($defaultBagSlots + 10)) {
                 throw new DFException(DFException::BAD_REQUEST);
             }
 
@@ -218,7 +228,7 @@ class CharacterService extends Service {
                 $defaultBagSlots = 50;
             }
 
-            if(($slots + $char->bagSlots) > ($defaultBagSlots + 15)) {
+            if($slots < 1 || ($slots + $char->bagSlots) > ($defaultBagSlots + 15)) {
                 throw new DFException(DFException::BAD_REQUEST);
             }
 
@@ -241,7 +251,7 @@ class CharacterService extends Service {
                 $defaultBagSlots = 50;
             }
 
-            if(($slots + $char->bagSlots) > ($defaultBagSlots + 180)) {
+            if($slots < 1 || ($slots + $char->bagSlots) > ($defaultBagSlots + 180)) {
                 throw new DFException(DFException::BAD_REQUEST);
             }
 
@@ -310,6 +320,7 @@ class CharacterService extends Service {
     public function applyExpSave(CharacterVO $char, int $questId, int $experience, int $gems, int $gold, int $silver): CharacterVO {
         return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($questId, $experience, $gems, $gold, $silver): CharacterVO {
             $quest = $this->questModel->getById($questId);
+            $this->assertQuestRewardTiming($char, $quest);
 
             $this->characterModel->applyExpSave($char, $quest, [
                 'experience' => $experience,
@@ -317,6 +328,7 @@ class CharacterService extends Service {
                 'gold'       => $gold,
                 'silver'     => $silver
             ]);
+            $this->characterQuestTimeModel->markCompleted($char, $quest);
 
             return $this->characterModel->refresh($char);
         });
@@ -324,16 +336,52 @@ class CharacterService extends Service {
 
     public function applyQuestRewards(CharacterVO $char, QuestVO $quest, array $rewards): CharacterVO {
         return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($quest, $rewards): CharacterVO {
+            $this->assertQuestRewardTiming($char, $quest);
             $this->characterModel->applyQuestRewards($char, $quest, $rewards);
+            $this->characterQuestTimeModel->markCompleted($char, $quest);
             return $this->characterModel->refresh($char);
         });
     }
 
-    public function applyQuestItemRewards(CharacterVO $char, int $newItemID): CharacterItemVO {
-        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($newItemID): CharacterItemVO {
+    public function applyQuestItemRewards(CharacterVO $char, int $newItemID, ?int $questId = null): CharacterItemVO {
+        return $this->characterModel->withLockedCharacter($char, function(CharacterVO $char) use ($newItemID, $questId): CharacterItemVO {
             $item = $this->itemModel->getById($newItemID);
+
+            if($this->settings->validateQuestLoot) {
+                if($questId) {
+                    $quest = $this->questModel->getById($questId);
+                    $allowed = $quest->getItemRewardIds();
+                } else {
+                    $allowed = $this->itemModel->getAllQuestRewardItemIds();
+                }
+                if(!\in_array($item->id, $allowed, true)) {
+                    throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'questReward', 'Item is not a quest reward', $char, $item, [
+                        'itemId' => $item->id,
+                        'questId' => $questId,
+                    ])->asException(DFException::INVALID_REFERENCE);
+                }
+            }
+
             return $this->characterItemModel->addItemToChar($char, $item);
         });
+    }
+
+    private function assertQuestRewardTiming(CharacterVO $char, QuestVO $quest): void {
+        if(!$this->settings->enforceQuestMinTime || $quest->minTime <= 0) {
+            return;
+        }
+        $lastCompletedAt = $this->characterQuestTimeModel->getLastCompletedAt($char, $quest);
+        if(!$lastCompletedAt) {
+            return;
+        }
+        $elapsed = \time() - \strtotime($lastCompletedAt);
+        if($elapsed < $quest->minTime) {
+            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'questReward', 'Quest completed too quickly', $char, $char, [
+                'questId' => $quest->id,
+                'minTime' => $quest->minTime,
+                'elapsed' => $elapsed,
+            ])->asException(DFException::BAD_REQUEST);
+        }
     }
 
     public function mergeQuest(CharacterVO $char, int $mergeId): array {

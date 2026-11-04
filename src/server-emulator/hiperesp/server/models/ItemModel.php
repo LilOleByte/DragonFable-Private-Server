@@ -51,6 +51,13 @@ class ItemModel extends Model {
         }, $this->storage->select(self::COLLECTION, ['id' => $itemIds], null));
     }
 
+    /** @return array<int> */
+    public function getAllQuestRewardItemIds(): array {
+        $rows = $this->storage->select(self::QUEST_ITEM_ASSOCIATION, [], null);
+        $ids = \array_map(static fn(array $row): int => (int)$row['itemId'], $rows);
+        return \array_values(\array_unique($ids));
+    }
+
     public function getByCharItem(CharacterItemVO $charItem): ItemVO {
         return $this->getById($charItem->itemId);
     }

@@ -83,6 +83,12 @@ class DragonModel extends Model {
     public function trainDragon(CharacterVO $char, int $debuff, int $buff, int $melee, int $magic, int $heal): array {
         $dragon = $this->getByChar($char);
 
+        foreach([$debuff, $buff, $melee, $magic, $heal] as $delta) {
+            if($delta < 0) {
+                throw new DFException(DFException::BAD_REQUEST);
+            }
+        }
+
         $newDebuff = min(200, $dragon['debuff'] + $debuff);
         $newBuff   = min(200, $dragon['buff'] + $buff);
         $newMelee  = min(200, $dragon['melee'] + $melee);

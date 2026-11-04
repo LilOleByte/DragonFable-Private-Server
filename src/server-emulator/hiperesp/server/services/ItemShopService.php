@@ -83,7 +83,7 @@ class ItemShopService extends Service {
                 quantity: $quantity,
                 returnPercent: $returnPercent
             );
-            $this->characterItemModel->destroy($charItem);
+            $this->characterItemModel->removeQuantity($charItem, $quantity);
 
             $this->logsModel->register(LogsModel::SEVERITY_ALLOWED, 'sellItem', 'Item sold', $char, $charItem, [
                 'quantity' => $quantity,

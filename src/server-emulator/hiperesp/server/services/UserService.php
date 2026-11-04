@@ -7,8 +7,10 @@ use hiperesp\server\interfaces\Bannable;
 use hiperesp\server\models\CharacterModel;
 use hiperesp\server\models\LogsModel;
 use hiperesp\server\models\UserModel;
+use hiperesp\server\util\RateLimit;
 use hiperesp\server\vo\CharacterVO;
 use hiperesp\server\vo\LogsVO;
+use hiperesp\server\vo\SettingsVO;
 use hiperesp\server\vo\UserVO;
 
 class UserService extends Service {
@@ -17,6 +19,7 @@ class UserService extends Service {
     #[Inject] private UserModel $userModel;
     #[Inject] private CharacterModel $characterModel;
     #[Inject] private LogsModel $logsModel;
+    #[Inject] private SettingsVO $settings;
 
     public function auth(\SimpleXMLElement|array|string $inputOrUserToken): UserVO {
         if(\is_array($inputOrUserToken)) {
@@ -92,6 +95,13 @@ class UserService extends Service {
     }
 
     public function validateRecoveryCode(UserVO $user, string $code): bool {
+        $bucket = 'recovery-try-'.\strtolower($user->email);
+        $maxAttempts = \max(1, $this->settings->recoveryMaxAttempts);
+        if(!RateLimit::attempt($bucket, $maxAttempts, 15 * 60)) {
+            $this->userModel->clearRecoveryCode($user);
+            return false;
+        }
+
         if(!$user->recoveryExpires) { // user has no recovery code
             return false;
         }
@@ -101,6 +111,7 @@ class UserService extends Service {
         if($user->recoveryCode !== $code) { // code is different
             return false;
         }
+        RateLimit::clear($bucket);
         return true;
     }
 

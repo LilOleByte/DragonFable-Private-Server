@@ -39,9 +39,17 @@ Access your database and open your `settings` table. This is what each column me
 
 - `dragonAmuletForAll`: The `dragonAmuletForAll` parameter is used to specify if the dragon amulet is available for all users. If you want to enable it, set it to `true`, otherwise set it to `false`. The default is `false`. If you set it to `true`, all users will have the dragon amulet, even if they don't have it in their account.
 
-- `revalidateClientValues`: The `revalidateClientValues` parameter is used to revalidate the client values, for example, if the client sends a value that is not expected, it will be revalidated. If user try to sell a item for 999999 gold or dragon coins, we will revalidate and sell with the correct price. It can have unexpected behavior. If you want to revalidate, set it to `true`, otherwise set it to `false`.
+- `revalidateClientValues`: The `revalidateClientValues` parameter is used to revalidate the client values, for example, if the client sends a value that is not expected, it will be revalidated. If user try to sell a item for 999999 gold or dragon coins, we will revalidate and sell with the correct price. It can have unexpected behavior. If you want to revalidate, set it to `true`, otherwise set it to `false`. Default is `true` for public hosts.
 
-- `banInvalidClientValues`: The `banInvalidClientValues` parameter is used to ban users that send invalid values. Like the `revalidateClientValues`, if the user try to sell a item for 999999 gold or dragon coins, we will revalidate and if the value is unexpected, we will ban the user. If you want to ban, set it to `true`, otherwise set it to `false`. As the `revalidateClientValues` can have unexpected behavior, It can cause some users to be banned injustly. If you want to ban, I recommend to set the `revalidateClientValues` to `true` and the `banInvalidClientValues` to `false`.
+- `banInvalidClientValues`: The `banInvalidClientValues` parameter is used to ban users that send invalid values. Like the `revalidateClientValues`, if the user try to sell a item for 999999 gold or dragon coins, we will revalidate and if the value is unexpected, we will ban the user. If you want to ban, set it to `true`, otherwise set it to `false`. As the `revalidateClientValues` can have unexpected behavior, It can cause some users to be banned injustly. Default is `false` because client updates can create false positives.
+
+- `enforceQuestMinTime`: When `true`, quest completion/exp save must wait at least `quest.minTime` seconds between rewards for that character. `minTime` comes from migrated quest data, so client updates keep working after a normal upgrade. Default is `true`.
+
+- `validateQuestLoot`: When `true`, quest item rewards must exist in migrated `quest_item` data (optionally for a given `intQuestID`). Default is `true`.
+
+- `recoveryMaxAttempts`: Max wrong password-recovery code guesses per email within 15 minutes before the code is cleared. Default is `5`.
+
+- `recoveryResendSeconds`: Minimum seconds between recovery emails for the same address. Default is `60`.
 
 - `canDeleteUpgradedChar`: The `canDeleteUpgradedChar` parameter is used to allow the user to delete an upgraded character. The original game does not allow the user to delete an specific upgraded character. User can only delete a character if it is not upgraded or when the entire account is upgraded. If you want to allow the user to delete an upgraded character, set it to `true`, otherwise set it to `false`.
 

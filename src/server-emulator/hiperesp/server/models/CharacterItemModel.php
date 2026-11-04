@@ -77,6 +77,21 @@ class CharacterItemModel extends Model {
         $this->storage->delete(self::COLLECTION, ['id' => $charItem->id]);
     }
 
+    public function removeQuantity(CharacterItemVO $charItem, int $quantity): void {
+        if($quantity < 1 || $quantity > $charItem->count) {
+            throw new DFException(DFException::ITEM_NOT_ENOUGH);
+        }
+        $remaining = $charItem->count - $quantity;
+        if($remaining > 0) {
+            $this->storage->update(self::COLLECTION, [
+                'id' => $charItem->id,
+                'count' => $remaining,
+            ]);
+            return;
+        }
+        $this->destroy($charItem);
+    }
+
     public function saveWeaponConfig(CharacterVO $char, array $equippedItemIds): void {
         $charItems = $this->getByChar($char);
 

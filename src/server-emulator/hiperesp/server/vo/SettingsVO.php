@@ -27,7 +27,11 @@ class SettingsVO extends ValueObject {
 
     public readonly bool $revalidateClientValues;
     public readonly bool $banInvalidClientValues;
+    public readonly bool $enforceQuestMinTime;
+    public readonly bool $validateQuestLoot;
     public readonly bool $canDeleteUpgradedChar;
+    public readonly int $recoveryMaxAttempts;
+    public readonly int $recoveryResendSeconds;
 
     public readonly int $nonUpgradedChars;
     public readonly int    $upgradedChars;

@@ -8,6 +8,7 @@ use hiperesp\server\enums\Input;
 use hiperesp\server\enums\Output;
 use hiperesp\server\services\SetupService;
 use hiperesp\server\services\WebStatsService;
+use hiperesp\server\storage\Storage;
 
 class SetupController extends Controller {
 
@@ -20,6 +21,13 @@ class SetupController extends Controller {
         outputType: Output::JSON
     )]
     public function defaultParams(): array {
+        if(!$this->isSetupAllowed()) {
+            return [
+                "success" => false,
+                "message" => "Setup is locked. Remove server-emulator/setup.lock only when intentionally upgrading.",
+            ];
+        }
+
         global $base;
 
         $sqliteDriver = \json_encode("\\".\hiperesp\server\storage\SQLite::class);
@@ -73,6 +81,15 @@ class SetupController extends Controller {
                 "success" => false,
                 "message" => $e->getMessage()
             ];
+        }
+    }
+
+    private function isSetupAllowed(): bool {
+        try {
+            return Storage::getStorage()->canSetup();
+        } catch(\Throwable $e) {
+            // No DB config yet: first-time setup is allowed.
+            return true;
         }
     }
 

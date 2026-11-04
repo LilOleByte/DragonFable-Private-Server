@@ -59,7 +59,8 @@ class QuestController extends Controller {
     public function reward(\SimpleXMLElement $input): \SimpleXMLElement {
         $char = $this->characterService->auth($input);
 
-        $charItem = $this->characterService->applyQuestItemRewards($char, (int)$input->intNewItemID);
+        $questId = isset($input->intQuestID) ? (int)$input->intQuestID : null;
+        $charItem = $this->characterService->applyQuestItemRewards($char, (int)$input->intNewItemID, $questId);
 
         return CharacterProjection::instance()->questItemReward($charItem);
     }

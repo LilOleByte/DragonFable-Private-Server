@@ -60,6 +60,11 @@ class QuestVO extends ValueObject {
         return $allPossibleRewards[$randomIndex];
     }
 
+    /** @return array<int> */
+    public function getItemRewardIds(): array {
+        return \array_map(static fn(ItemVO $item): int => $item->id, $this->itemModel->getByQuest($this));
+    }
+
     /** @return array<MonsterVO> */
     public function getMonsters(): array {
         return $this->monsterModel->getByQuest($this);

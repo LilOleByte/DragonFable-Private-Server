@@ -3,6 +3,7 @@ namespace hiperesp\server\services;
 
 use hiperesp\server\attributes\Inject;
 use hiperesp\server\exceptions\DFException;
+use hiperesp\server\util\RateLimit;
 use hiperesp\server\vo\SettingsVO;
 
 class ApiService extends Service {
@@ -18,6 +19,16 @@ class ApiService extends Service {
                 'isEmailDisabled' => true,
                 'supportEmail' => $this->settings->emailAddress,
                 'error' => 'Emails are disabled'
+            ];
+        }
+        $emailKey = \strtolower(\trim($email));
+        if(!RateLimit::attempt('recovery-send-'.$emailKey, 1, \max(1, $this->settings->recoveryResendSeconds))
+            || !RateLimit::attempt('recovery-send-hour-'.$emailKey, 5, 3600)) {
+            return [
+                'success' => true,
+                'isEmailDisabled' => false,
+                'supportEmail' => $this->settings->emailAddress,
+                'error' => ''
             ];
         }
         try {
